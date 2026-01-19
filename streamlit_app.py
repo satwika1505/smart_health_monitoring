@@ -5,12 +5,11 @@ import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+from datetime import datetime
+import plotly.express as px
 
 # Optional SHAP (explainability)
-try:
-    import shap
-except:
-    shap = None
+shap = None
 
 # Load Model + Config
 @st.cache_resource
@@ -30,19 +29,6 @@ try:
     from nlp_advice.ai_advice import generate_dynamic_advice
 except:
     generate_dynamic_advice = None
-
-# SHAP
-EXPLAINER = None
-def ensure_explainer():
-    global EXPLAINER
-    if shap is None:
-        return None
-    if EXPLAINER is None:
-        try:
-            EXPLAINER = shap.TreeExplainer(MODEL)
-        except:
-            EXPLAINER = None
-    return EXPLAINER
 
 # Rules
 def rule_safety_net(hr, slp, act, temp):
@@ -80,8 +66,7 @@ def recommendations(hr, slp, act, temp, pred):
         recs.append("Keep up balanced hydration, sleep, and consistent activity.")
     return recs
 
-# UI -----------------------------------------------------------------------------
-
+# ---------------- UI ----------------
 st.set_page_config(page_title="Smart Health Monitor", page_icon="🩺", layout="centered")
 st.title("🩺 Smart Health Monitoring — Live & Intelligent")
 
@@ -101,11 +86,7 @@ if rule_safety_net(hr, slp, act, temp): pred = 1
 
 st.subheader("Prediction Result")
 st.write(f"Probability (Anomaly): **{proba:.3f}**  |  Threshold: **{THRESHOLD:.3f}**")
-
-if pred == 0:
-    st.success("✅ Normal")
-else:
-    st.error("⚠️ Anomaly Detected")
+st.success("✅ Normal") if pred == 0 else st.error("⚠️ Anomaly Detected")
 
 # Causes
 st.subheader("Likely Causes")
@@ -114,18 +95,7 @@ for c in derive_causes(hr, slp, act, temp):
 
 # SHAP
 st.subheader("Top Influential Factors")
-exp = ensure_explainer()
-if exp:
-    x = pd.DataFrame([[hr, slp, act, temp]], columns=FEATURES)
-    try:
-        sv = exp.shap_values(x)[1].flatten()
-    except:
-        sv = exp.shap_values(x).flatten()
-    factors = list(zip(FEATURES, x.iloc[0].tolist(), sv))
-    for feat, val, impact in sorted(factors, key=lambda t: abs(t[2]), reverse=True)[:3]:
-        st.write(f"- **{feat}** = {val} (impact: {impact:+.4f})")
-else:
-    st.caption("SHAP not installed. Run: `pip install shap==0.44.1`")
+st.caption("SHAP not installed. Run: `pip install shap==0.44.1`")
 
 # Recommendations
 st.subheader("What You Should Do")
@@ -139,10 +109,8 @@ if generate_dynamic_advice:
     st.write(advice)
 else:
     st.caption("AI advice not enabled. (Install transformers + torch)")
-# ----------------- Enhanced Visualization of Trends -----------------
-import plotly.express as px
-from datetime import datetime
 
+# ---------------- Trend Chart ----------------
 st.subheader("📊 Trend of Your Health Metrics (Session)")
 
 # Initialize session state for storing historical readings
@@ -150,23 +118,32 @@ if "history" not in st.session_state:
     st.session_state.history = pd.DataFrame(columns=["Timestamp", "Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
 
 # Append current reading with timestamp
-new_row = pd.DataFrame({
-    "Timestamp": [datetime.now()],
-    "Heart Rate": [hr],
-    "Sleep Hours": [slp],
-    "Activity Level": [act],
-    "Temperature": [temp]
-})
-st.session_state.history = pd.concat([st.session_state.history, new_row], ignore_index=True)
+st.session_state.history.loc[len(st.session_state.history)] = {
+    "Timestamp": datetime.now(),
+    "Heart Rate": hr,
+    "Sleep Hours": slp,
+    "Activity Level": act,
+    "Temperature": temp
+}
 
-# Plot using Plotly with colored lines and legend
+# Sort by timestamp
+st.session_state.history.sort_values("Timestamp", inplace=True)
+
+# Plot using Plotly
 fig = px.line(
     st.session_state.history,
     x="Timestamp",
     y=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"],
     labels={"value": "Metric Value", "variable": "Metric"},
-    title="Session Health Trends"
+    title="Session Health Trends",
+    markers=True
 )
-fig.update_layout(xaxis_title="Time", yaxis_title="Value", legend_title="Metrics", template="plotly_white")
+fig.update_layout(
+    xaxis_title="Time",
+    yaxis_title="Value",
+    legend_title="Metrics",
+    template="plotly_white"
+)
+
 st.plotly_chart(fig, use_container_width=True)
 st.caption("Note: Trends are based on current session data only.")
