@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import pytz
 import plotly.express as px
 
 # ---------------- Page Config ----------------
@@ -66,6 +67,9 @@ if not recommendations:
 
 for r in recommendations:
     st.write("•", r)
+def get_ist_time():
+    ist = pytz.timezone("Asia/Kolkata")
+    return datetime.now(ist).strftime("%H:%M")
 
 # ---------------- Trend Chart (Session Only) ----------------
 st.subheader("📊 Session Trends")
@@ -91,5 +95,6 @@ fig = px.line(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+st.caption(f"🕒 Current IST Time: {get_ist_time()}")
 
 st.caption("Note: Data resets on refresh.")
