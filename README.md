@@ -1,5 +1,5 @@
 Live Demo:
- https://smarthealthmonitoring-xsnpto2urpb5udqfok97du.streamlit.app/
+ https://satwika1505-smart-health-monitoring-streamlit-app-u02yso.streamlit.app/
 
 
 About the Project:
