@@ -139,3 +139,18 @@ if generate_dynamic_advice:
     st.write(advice)
 else:
     st.caption("AI advice not enabled. (Install transformers + torch)")
+# ----------------- Visualization of Trends -----------------
+st.subheader("📊 Trend of Your Health Metrics (Session)")
+
+# Initialize session state for storing historical readings
+if "history" not in st.session_state:
+    st.session_state.history = pd.DataFrame(columns=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
+
+# Append current reading
+st.session_state.history = pd.concat([
+    st.session_state.history,
+    pd.DataFrame([[hr, slp, act, temp]], columns=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
+], ignore_index=True)
+
+# Plot line chart
+st.line_chart(st.session_state.history)
