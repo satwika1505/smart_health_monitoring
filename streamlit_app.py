@@ -139,18 +139,34 @@ if generate_dynamic_advice:
     st.write(advice)
 else:
     st.caption("AI advice not enabled. (Install transformers + torch)")
-# ----------------- Visualization of Trends -----------------
+# ----------------- Enhanced Visualization of Trends -----------------
+import plotly.express as px
+from datetime import datetime
+
 st.subheader("📊 Trend of Your Health Metrics (Session)")
 
 # Initialize session state for storing historical readings
 if "history" not in st.session_state:
-    st.session_state.history = pd.DataFrame(columns=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
+    st.session_state.history = pd.DataFrame(columns=["Timestamp", "Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
 
-# Append current reading
-st.session_state.history = pd.concat([
+# Append current reading with timestamp
+new_row = pd.DataFrame({
+    "Timestamp": [datetime.now()],
+    "Heart Rate": [hr],
+    "Sleep Hours": [slp],
+    "Activity Level": [act],
+    "Temperature": [temp]
+})
+st.session_state.history = pd.concat([st.session_state.history, new_row], ignore_index=True)
+
+# Plot using Plotly with colored lines and legend
+fig = px.line(
     st.session_state.history,
-    pd.DataFrame([[hr, slp, act, temp]], columns=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"])
-], ignore_index=True)
-
-# Plot line chart
-st.line_chart(st.session_state.history)
+    x="Timestamp",
+    y=["Heart Rate", "Sleep Hours", "Activity Level", "Temperature"],
+    labels={"value": "Metric Value", "variable": "Metric"},
+    title="Session Health Trends"
+)
+fig.update_layout(xaxis_title="Time", yaxis_title="Value", legend_title="Metrics", template="plotly_white")
+st.plotly_chart(fig, use_container_width=True)
+st.caption("Note: Trends are based on current session data only.")
